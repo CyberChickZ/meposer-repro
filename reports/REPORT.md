@@ -87,10 +87,14 @@ Over all three folds the same pipeline without the leg crop gives **2.46 cm** (v
   reused from the image branch) localises them at 4 px median instead of 10: legs 6.2 → 4.2 cm.
 - **Low-pass → jitter.** The LSTM output jitters at ~4x the annotation; a fixed filter brings it to 1.5x (offline).
 
-![qualitative](figures/hard_0006.png)
-*Hard clip of held-out subject 0006 (fast whole-body motion, frames 991 on): ground truth, reproduced MEPoser
-and ours; skeletons: ground truth green, prediction red. Animated with the fisheye views: [mesh_0006.gif](figures/mesh_0006.gif); all four
-models on the same clip: [compare_0006.gif](figures/compare_0006.gif).*
+![qualitative](figures/mesh_0006_frames.png)
+*Hard clip of held-out subject 0006 (fast whole-body motion). Left: our predicted mesh projected into both headset
+fisheye views. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth green, prediction red.
+Animated: [mesh_0006.gif](figures/mesh_0006.gif).*
+
+![methods](figures/compare_0006.png)
+*Same clip, all four models against ground truth, with the per-frame error below. Animated:
+[compare_0006.gif](figures/compare_0006.gif).*
 
 ## 6. Insights
 
@@ -114,7 +118,8 @@ models on the same clip: [compare_0006.gif](figures/compare_0006.gif).*
   5.76 cm); with the paper's effective batch it reaches 4.26 cm, and the remaining gap is consistent with 4x fewer
   optimizer updates in our time budget. We did not run the matched-update joint schedule (~3 h per fold).
 - A half-cell offset (8 px) in converting heatmap peaks to pixels silently biased the 2D fit until the visualisations
-  showed that visible joints were not aligned.
+  showed that visible joints were not aligned. The cross-validation rows with the 2D fit predate the fix; the current code
+  is about 0.05 cm better on them.
 - Backend issues on Apple MPS (a non-deterministic NaN, a wrong broadcasting matmul in eval mode); every number was
   re-run on CUDA.
 
@@ -130,4 +135,5 @@ models on the same clip: [compare_0006.gif](figures/compare_0006.gif).*
 
 Code, configs and exact commands: [README](../README.md). Best checkpoint (fold holding out 0001+0006) and the leg-crop
 network: `checkpoints/`. Every number above: `reports/results/`. The dataset is not redistributed; the figures show a few
-processed frames for illustration. Claude Code (Anthropic) wrote the code, ran the experiments and drafted this report under my direction.
+processed frames for illustration. AI use: I am responsible for the design decisions, checks and conclusions; Claude Code (Anthropic) was used for
+implementation, running experiments and drafting.

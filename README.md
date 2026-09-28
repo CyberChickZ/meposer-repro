@@ -2,7 +2,7 @@
 
 <a href="https://arxiv.org/abs/2408.17168"><img src="https://img.shields.io/badge/arXiv-2408.17168-b31b1b"></a>
 <a href="https://pico-ai-team.github.io/EMHI/"><img src="https://img.shields.io/badge/Dataset-EMHI-yellow"></a>
-<a href="reports/REPORT.md"><img src="https://img.shields.io/badge/Report-technical-blue"></a>
+<a href="reports/REPORT.pdf"><img src="https://img.shields.io/badge/Report-PDF-blue"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green"></a>
 
 An independent, fully documented reproduction of **MEPoser**, the baseline of *EMHI: A Multimodal Egocentric Human
@@ -161,7 +161,7 @@ What each change fixes, on the fold with the two most active subjects:
 | + adaptive lower-body crop | 2.58 | 4.21 | 2.45 | 2.84 |
 | + 4 Hz low-pass | **2.50** | **4.01** | **2.38** | **2.73** |
 
-The [technical report](reports/REPORT.md) covers the method, assumptions, analysis, failure cases and next steps.
+The technical report ([PDF](reports/REPORT.pdf), [Markdown](reports/REPORT.md)) covers the method, assumptions, analysis, failure cases and next steps.
 Implementation details and every intermediate experiment are in the [appendix](reports/REPORT_APPENDIX.md).
 
 ## Visualization
@@ -209,7 +209,8 @@ We thank the authors of [EMHI](https://pico-ai-team.github.io/EMHI/) for the dat
 [HMD-Poser](https://github.com/Pico-AI-Team/HMD-Poser) and [AvatarPoser](https://github.com/eth-siplab/AvatarPoser)
 for the metric code, [UnrealEgo](https://github.com/hiroyasuakada/UnrealEgo) for the Procrustes alignment, and
 [SMPL](https://smpl.is.tue.mpg.de/). The README layout follows [JOSH](https://github.com/genforce/JOSH).
-Claude Code (Anthropic) was used for implementation, experiments and drafting the report.
+The author is responsible for the design decisions, checks and conclusions; Claude Code (Anthropic) was used for
+implementation, running experiments and drafting.
 
 ## Citation
 
