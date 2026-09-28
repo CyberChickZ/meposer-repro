@@ -70,6 +70,8 @@ def main():
     p.add_argument("--baseline-post", default="raw", choices=list(POSTS))
     p.add_argument("--no-images", action="store_true", help="omit the dataset fisheye frames (for redistribution)")
     p.add_argument("--png", help="also write a static grid of 4 frames")
+    p.add_argument("--images-dir", default="data/processed_640", help="prepared images shown in the fisheye panels (falls back to data/processed)")
+    p.add_argument("--gif-scale", type=float, default=0.5, help="gif size relative to the mp4")
     a = p.parse_args()
     smpl = load_smpl_full("assets/smpl/SMPL_NEUTRAL.npz")
     faces = np.load("assets/smpl/SMPL_NEUTRAL.npz")["f"].astype(np.int64)
@@ -78,8 +80,11 @@ def main():
     model.eval()
     cfg.data.val_subjects = [a.subject]
     seq = sequences_for(cfg, "val")[0]
-    if seq.images is None:
-        seq.images = np.load(Path("data/processed") / a.subject / seq.meta["images"], mmap_mode="r")
+    img_dir = Path(a.images_dir) / a.subject
+    if not (img_dir / "meta.json").exists():
+        img_dir = Path("data/processed") / a.subject
+    import json
+    seq.images = np.load(img_dir / json.load(open(img_dir / "meta.json"))["images"], mmap_mode="r")
     (s0, s1), out = max(predict_sequence(model, seq, torch.device("cpu"), cfg), key=lambda r: r[0][1] - r[0][0])
     ann = dict(np.load(Path(cfg.data.processed) / a.subject / "annots.npz"))
     i0 = max(s0, a.start); i1 = min(s1, i0 + int(a.seconds * 30))
@@ -105,6 +110,8 @@ def main():
     h, w = seq.images.shape[-2:]
     sx, sy = w / 640, h / 480
     size = 2 * h
+    fs = size / 480
+    th = max(1, round(fs))
     rows = []
     for k, f in enumerate(frames):
         views = []
@@ -112,17 +119,26 @@ def main():
             img = cv2.cvtColor(np.ascontiguousarray(seq.images[f, c]), cv2.COLOR_GRAY2BGR)
             pc = transform_points(seq.T_cam_world[f, c].astype(np.float64), v_pred[k].astype(np.float64))
             uv = project_kb4(pc, calib["cameras"][cam]["params"]) * np.array([sx, sy])
-            img = raster(img, uv, pc[:, 2], faces, pc, (60, 140, 255), 0.45, max_edge=0.08 * w)
-            cv2.putText(img, f"{a.subject} f{int(seq.frames[f])} {cam}: predicted mesh", (5, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 0), 1, cv2.LINE_AA)
+            img = raster(img, uv, pc[:, 2], faces, pc, (60, 140, 255), 0.3, max_edge=0.08 * w)
+            from meposer.smpl.constants import BONES as SK
+            T = seq.T_cam_world[f, c].astype(np.float64)
+            for pts, col in ((seq.joints_world[f], (0, 200, 0)), ((smpl["J_regressor"] @ v_pred[k])[:22], (0, 0, 255))):
+                pj = transform_points(T, pts.astype(np.float64))
+                uj = project_kb4(pj, calib["cameras"][cam]["params"]) * np.array([sx, sy])
+                for jj, pp in SK:
+                    if pj[jj, 2] > 0.05 and pj[pp, 2] > 0.05:
+                        cv2.line(img, tuple(np.round(uj[jj]).astype(int)), tuple(np.round(uj[pp]).astype(int)), col, 2 * th, cv2.LINE_AA)
+            cv2.putText(img, f"{a.subject} f{int(seq.frames[f])} {cam}", (int(6 * fs), int(16 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.42 * fs, (255, 255, 0), th, cv2.LINE_AA)
+            cv2.putText(img, "ours: predicted SMPL (orange), joints red; GT joints green", (int(6 * fs), int(32 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.36 * fs, (255, 255, 0), th, cv2.LINE_AA)
             views.append(img)
         left = np.concatenate(views, 0)
         gt_j = seq.joints_world[f]
         meshes = [("ground truth", v_gt[k], (150, 150, 150), None, None)]
         if v_base is not None:
-            meshes.append(("MEPoser (reproduced)", v_base[k], (230, 150, 60), err_base[k], v_base[k]))
-        meshes.append(("ours", v_pred[k], (60, 140, 255), err[k], v_pred[k]))
+            meshes.append(("MEPoser prediction", v_base[k], (230, 150, 60), err_base[k], v_base[k]))
+        meshes.append(("ours: prediction", v_pred[k], (60, 140, 255), err[k], v_pred[k]))
         n = len(meshes)
-        panel = np.full((size, int(size * 0.55 * n), 3), 245, np.uint8)
+        panel = np.full((size, int(size * 0.45 * n), 3), 245, np.uint8)
         centre = seq.joints_world[f, 0]
         yaw = np.deg2rad(35)
         R = np.array([[np.cos(yaw), 0, -np.sin(yaw)], [0, -1, 0], [np.sin(yaw), 0, np.cos(yaw)]])
@@ -131,26 +147,27 @@ def main():
         for m, (label, verts, color, e, _) in enumerate(meshes):
             cx = panel.shape[1] * (m + 0.5) / n
             uv, d, pc = pinhole(verts, R, t, size * 1.05, cx, size * 0.5)
-            panel = raster(panel, uv, d, faces, pc, color, 1.0)
+            panel = raster(panel, uv, d, faces, pc, color, 0.5)
             joints = (J @ verts)[:22]
             juv, _, _ = pinhole(joints, R, t, size * 1.05, cx, size * 0.5)
             guv, _, _ = pinhole(gt_j, R, t, size * 1.05, cx, size * 0.5)
             from meposer.smpl.constants import BONES
             for jj, pp in BONES:
                 if m > 0:
-                    cv2.line(panel, tuple(np.round(guv[jj]).astype(int)), tuple(np.round(guv[pp]).astype(int)), (0, 170, 0), 2, cv2.LINE_AA)
-                cv2.line(panel, tuple(np.round(juv[jj]).astype(int)), tuple(np.round(juv[pp]).astype(int)), (0, 0, 200) if m > 0 else (60, 60, 60), 2, cv2.LINE_AA)
-            cv2.putText(panel, label, (int(cx - 70), 24), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (60, 60, 60), 1, cv2.LINE_AA)
+                    cv2.line(panel, tuple(np.round(guv[jj]).astype(int)), tuple(np.round(guv[pp]).astype(int)), (0, 170, 0), 2 * th, cv2.LINE_AA)
+                cv2.line(panel, tuple(np.round(juv[jj]).astype(int)), tuple(np.round(juv[pp]).astype(int)), (0, 0, 200) if m > 0 else (60, 60, 60), 2 * th, cv2.LINE_AA)
+            cv2.putText(panel, label, (int(cx - 70 * fs), int(26 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.55 * fs, (60, 60, 60), th, cv2.LINE_AA)
             if e is not None:
-                cv2.putText(panel, f"MPJPE {e:.1f} cm", (int(cx - 55), size - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (60, 60, 60), 1, cv2.LINE_AA)
-        cv2.putText(panel, f"{a.subject} f{int(seq.frames[f])}  skeleton: GT green / prediction red", (8, size - 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (90, 90, 90), 1, cv2.LINE_AA)
+                cv2.putText(panel, f"MPJPE {e:.1f} cm", (int(cx - 55 * fs), size - int(12 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.55 * fs, (60, 60, 60), th, cv2.LINE_AA)
+        cv2.putText(panel, f"{a.subject} f{int(seq.frames[f])}  skeleton: GT green / prediction red", (int(8 * fs), size - int(36 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.45 * fs, (90, 90, 90), th, cv2.LINE_AA)
         rows.append(panel if a.no_images else np.concatenate([left, panel], 1))
     out_path = Path(a.out)
     wr = cv2.VideoWriter(str(out_path.with_suffix(".mp4")), cv2.VideoWriter_fourcc(*"mp4v"), 30 / a.step, (rows[0].shape[1], rows[0].shape[0]))
     for r in rows:
         wr.write(r)
     wr.release()
-    ims = [Image.fromarray(cv2.cvtColor(cv2.resize(r, (r.shape[1] * 3 // 4, r.shape[0] * 3 // 4), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)).quantize(colors=160) for r in rows]
+    gw, gh = int(rows[0].shape[1] * a.gif_scale), int(rows[0].shape[0] * a.gif_scale)
+    ims = [Image.fromarray(cv2.cvtColor(cv2.resize(r, (gw, gh), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)).quantize(colors=192) for r in rows]
     ims[0].save(out_path.with_suffix(".gif"), save_all=True, append_images=ims[1:], duration=int(1000 * a.step / 30), loop=0, optimize=True)
     if a.png:
         pick = np.linspace(0, len(rows) - 1, 4).astype(int)

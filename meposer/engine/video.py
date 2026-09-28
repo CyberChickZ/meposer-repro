@@ -9,29 +9,33 @@ from ..smpl.constants import BONES, HEAD
 GREEN, RED, WHITE, GREY = (0, 200, 0), (0, 0, 255), (255, 255, 255), (90, 90, 90)
 
 
-def _project(points, azimuth_deg, size, scale):
+def _project(points, azimuth_deg, size, scale, width=None):
     a = np.deg2rad(azimuth_deg)
     rot = np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]])
     p = points @ rot.T
-    u = size / 2 + p[:, 0] * scale
+    u = (width or size) / 2 + p[:, 0] * scale
     v = size * 0.22 - p[:, 1] * scale
     return np.stack([u, v], 1).astype(int)
 
 
-def _skeleton_panel(gt, pred, size, azimuth, err_cm, text):
-    panel = np.full((size, size, 3), 30, np.uint8)
-    for x in range(0, size, size // 8):
+def _skeleton_panel(gt, pred, size, azimuth, err_cm, text, width=None):
+    width = width or size
+    panel = np.full((size, width, 3), 30, np.uint8)
+    fs = max(1.0, size / 480)
+    th = max(1, round(fs))
+    for x in range(0, max(size, width), size // 8):
         cv2.line(panel, (x, 0), (x, size), GREY, 1)
-        cv2.line(panel, (0, x), (size, x), GREY, 1)
+        cv2.line(panel, (0, x), (width, x), GREY, 1)
     scale = size / 2.6
-    for pts, color, thick in [(gt, GREEN, 2), (pred, RED, 2)]:
-        uv = _project(pts - gt[HEAD], azimuth, size, scale)
+    for pts, color in [(gt, GREEN), (pred, RED)]:
+        uv = _project(pts - gt[HEAD], azimuth, size, scale, width)
         for j, p in BONES:
-            cv2.line(panel, tuple(uv[j]), tuple(uv[p]), color, thick, cv2.LINE_AA)
+            cv2.line(panel, tuple(uv[j]), tuple(uv[p]), color, 2 * th, cv2.LINE_AA)
         for u, v in uv:
-            cv2.circle(panel, (u, v), 3, color, -1, cv2.LINE_AA)
-    cv2.putText(panel, text, (8, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
-    cv2.putText(panel, f"MPJPE {err_cm:.1f} cm   GT green / pred red", (8, size - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
+            cv2.circle(panel, (u, v), 3 * th, color, -1, cv2.LINE_AA)
+    cv2.putText(panel, text, (int(8 * fs), int(20 * fs)), cv2.FONT_HERSHEY_SIMPLEX, 0.55 * fs, WHITE, th, cv2.LINE_AA)
+    cv2.putText(panel, f"MPJPE {err_cm:.1f} cm", (int(8 * fs), size - int(10 * fs)), cv2.FONT_HERSHEY_SIMPLEX,
+                0.5 * fs, WHITE, th, cv2.LINE_AA)
     return panel
 
 

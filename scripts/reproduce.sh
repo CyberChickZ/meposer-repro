@@ -42,6 +42,6 @@ $P scripts/final_table.py runs/final --models best_long --roi 'runs/leg_roi_long
 $P scripts/metrics_table.py runs/final/final_table.json runs/final/best_long.json   # -> reports/results/metrics_full.md
 $P scripts/hard_cases.py                                   # -> reports/results/hard_cases.md      (report section 5)
 $P scripts/render_mesh.py --ckpt runs/final/best_long/fold1/last.pt --baseline runs/final/two_stage/fold1/last.pt --post full \
-  --subject 0006 --start 991 --seconds 6 --png reports/figures/mesh_0006.png --out reports/figures/mesh_0006 \
+  --subject 0006 --start 990 --seconds 4 --png reports/figures/mesh_0006.png --out reports/figures/clips/mesh_0006 \
   --set model.image_features=runs/cv/fold1/stage1_image/features refine_2d_features=runs/leg_roi_long_fold1/features \
         refine_2d_weight=3 refine_prior=0.03 refine_iters=150

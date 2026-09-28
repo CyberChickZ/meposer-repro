@@ -132,10 +132,14 @@ was tuned on (0001: 2.40 → 2.29) and hurts the others (0005: 1.66 → 1.87), s
   and is not used: the predicted lowest foot is already within 0.5-3 cm of the floor.
 
 ![qualitative](figures/mesh_0006_frames.png)
-*Held-out 0006, fast whole-body motion. Left: our predicted mesh projected into both headset fisheye views. Right:
-ground truth, reproduced MEPoser and ours; skeletons: ground truth green, prediction red. Animated:
-[mesh_0006.gif](figures/mesh_0006.gif); four models: [compare_0006.gif](figures/compare_0006.gif); five more clips
-(walking, arms out of view, partial leg occlusion) in the [README](../README.md#visualization).*
+*Held-out 0006, fast whole-body motion. Left: our predicted SMPL mesh (orange) and joints (red) projected into both
+headset fisheye views, ground-truth joints green. Right: ground-truth mesh, MEPoser's prediction and ours. Animated:
+[mesh_0006.gif](figures/clips/mesh_0006.gif); five more clips (walking, arms out of view, partial leg occlusion) in the
+[README](../README.md#visualization).*
+
+![hardest](figures/compare_0001_hard.png)
+*The held-out stretch where MEPoser errs most (0001, walking): IMU-only 7.55, image-only 9.26, MEPoser 7.32, ours
+2.52 cm over the clip. Animated: [compare_0001_hard.gif](figures/compare_0001_hard.gif).*
 
 ## 6. Insights
 

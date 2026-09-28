@@ -11,11 +11,12 @@ takes the two downward fisheye views of a VR headset plus five tracked devices (
 trackers) and predicts SMPL pose and shape. On top of the reproduction we add the geometry the paper leaves unused:
 controller-driven wrist IK, a stereo reprojection fit through the calibrated fisheye model, and an adaptive lower-body crop.
 
-![Teaser](reports/figures/mesh_0006.gif)
+![Teaser](reports/figures/clips/mesh_0006.gif)
 
-*Held-out folder 0006, fast whole-body motion. Left: our predicted SMPL mesh projected into both headset fisheye views
-through the calibrated fisheye model. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth green,
-prediction red.*
+*Held-out folder 0006, fast whole-body motion. Left: our **predicted** SMPL mesh (orange) and joints (red) projected
+into both headset fisheye views through the calibrated fisheye model, with the ground-truth joints (green) for
+reference. Right: ground-truth mesh, MEPoser's prediction and our prediction; skeletons: ground truth green, prediction
+red.*
 
 ## Highlights
 
@@ -149,7 +150,7 @@ bash scripts/reproduce.sh      # all folds, all models, tables and figures; ~10 
 ```
 
 It writes `runs/final/final_table.md` (report section 4), `reports/results/hard_cases.md` (section 5) and
-`reports/figures/mesh_0006.*`.
+`reports/figures/clips/mesh_0006.*`.
 
 ## Results
 
@@ -186,9 +187,16 @@ Implementation details and every intermediate experiment are in the [appendix](r
 
 ## Visualization
 
-Held-out clips, 4 s each, rendered with the released pipeline (40-epoch model, leg crop, contact fit). Left: our mesh
-projected into both headset fisheye views. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth
-green, prediction red. Clip MPJPE in cm, MEPoser → ours.
+The hardest held-out stretch for MEPoser (folder 0001 from frame 1798, walking; its 8 s mean error is the highest of
+all six held-out folders). Left: fisheye views with the ground-truth joints (green) and our prediction (red) projected
+into the image. Right: IMU-only, image-only, MEPoser and ours, with the per-frame error below. Clip MPJPE in cm:
+IMU-only 7.55, image-only 9.26, MEPoser 7.32, ours 2.52.
+
+![Hardest clip](reports/figures/compare_0001_hard.gif)
+
+More held-out clips, 4 s each, rendered with the released pipeline (40-epoch model, leg crop, contact fit). Left: our
+predicted SMPL mesh and joints (red) in both fisheye views, ground-truth joints green. Right: ground-truth mesh,
+MEPoser's prediction and ours. Clip MPJPE in cm, MEPoser → ours.
 
 | walking, 0001: 6.21 → 2.76 | walking, 0002: 2.87 → 2.24 |
 |---|---|
@@ -204,8 +212,7 @@ slightly worse than MEPoser.
 
 ![Methods](reports/figures/compare_0006.gif)
 
-*All four models on the 0006 clip. Left: fisheye views with ground truth (green) and our prediction (red). Right:
-IMU-only, image-only, MEPoser and ours, with the per-frame error below.*
+*All four models on the 0006 clip (fast whole-body motion).*
 
 ```bash
 # four-method comparison (add --no-images to leave out the dataset fisheye frames)
