@@ -135,5 +135,5 @@ Animated: [mesh_0006.gif](figures/mesh_0006.gif).*
 
 Code, configs and exact commands: [README](../README.md). Best checkpoint (fold holding out 0001+0006) and the leg-crop
 network: `checkpoints/`. Every number above: `reports/results/`. The dataset is not redistributed; the figures show a few
-processed frames for illustration. AI use: I am responsible for the design decisions, checks and conclusions; Claude Code (Anthropic) was used for
-implementation, running experiments and drafting.
+processed frames for illustration. Thanks to Claude Code (Anthropic) for taking part in the
+implementation, the experiments and the drafting of this report.
