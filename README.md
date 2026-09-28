@@ -13,14 +13,18 @@ controller-driven wrist IK, a stereo reprojection fit through the calibrated fis
 
 ![Teaser](reports/figures/mesh_0006.gif)
 
-*Held-out subject 0006, fast whole-body motion. Left: our predicted SMPL mesh projected into both headset fisheye views
+*Held-out folder 0006, fast whole-body motion. Left: our predicted SMPL mesh projected into both headset fisheye views
 through the calibrated fisheye model. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth green,
 prediction red.*
 
 ## Highlights
 
-- **The paper's claim reproduces.** Fusing images and IMUs beats either modality alone under 3-fold subject cross-validation.
-- **Improvements: 3.53 → 2.46 cm MPJPE** on unseen subjects, 2.73 cm on the fastest quarter of frames where MEPoser has 6.84 cm.
+- **The paper's claim reproduces.** Fusing images and IMUs beats either modality alone under 3-fold cross-validation.
+- **Improvements: 3.53 → 1.96 cm MPJPE** on held-out recordings; an optional contact fit cuts
+  foot skating from 17.7 to 10.2 cm/s for 0.03 cm of MPJPE.
+- **The data is audited.** A per-folder audit ([DATA_AUDIT.md](reports/results/DATA_AUDIT.md)) found that the 10
+  folders share one body shape (probably one person), that 0000 misses 30 % of its annotations, and that leg occlusion
+  is essentially absent.
 - **Everything is reproducible.** One script regenerates every number, and the metrics use the HMD-Poser code the paper compares against.
 - **The dataset is not redistributed.** You prepare the data yourself; the figures show a few processed frames for illustration only.
 
@@ -39,7 +43,7 @@ Tested with PyTorch 2.10 on Linux + CUDA (NVIDIA H200) and on macOS (Apple M4 Ma
 ## Data preparation
 
 **1. EMHI.** Obtain the data from the [EMHI authors](https://pico-ai-team.github.io/EMHI/); it is not included here.
-This code was developed on a 10-subject subset (`0000`-`0009`) laid out as:
+This code was developed on a 10-folder subset (`0000`-`0009`, called subjects in the release) laid out as:
 
 ```
 data/raw/<subject>/annots/*.npy            per-frame SMPL, 2D joints, extrinsics, device readings
@@ -61,17 +65,22 @@ python tools/convert_smpl_pkl.py /path/to/SMPL_NEUTRAL.pkl assets/smpl/SMPL_NEUT
 ```bash
 meposer prepare --raw data/raw --out data/processed                                  # 320x240, ~1 min
 meposer prepare --raw data/raw --out data/processed_640 --image-size 640x480         # native, for the leg crops only
+python scripts/data_audit.py                                                         # -> reports/results/DATA_AUDIT.md
 ```
+
+Known issues in the 10-folder subset, from the audit: folder 0000 has annotations for only 1391 of its 1984 image
+pairs, so it contributes almost nothing to temporal training (the loader prints a warning); all folders share one
+SMPL body shape; `left_hand_acc` is a copy of `left_hand_pos` and is not used.
 
 ## Quick start with the released checkpoints
 
 | file | content | size |
 |---|---|---|
-| `checkpoints/meposer_best.pt` | our temporal model (augmentation + foot-contact head), fold holding out subjects 0001 + 0006 | 44 MB |
+| `checkpoints/meposer_best.pt` | our temporal model (augmentation + foot-contact head, 40 epochs), fold holding out 0001 + 0006 | 44 MB |
 | `checkpoints/stage1_image.pt` | MEPoser image branch of the same fold | 28 MB |
 | `checkpoints/leg_roi.pt` | adaptive lower-body crop network of the same fold | 4 MB |
 
-The checkpoints were trained without subjects 0001 and 0006, so evaluate them only on those two.
+The checkpoints were trained without folders 0001 and 0006, so evaluate them only on those two.
 
 ```bash
 # network output (the image-branch cache is rebuilt from stage1_image.pt on first use)
@@ -85,6 +94,10 @@ python scripts/leg_roi.py infer --weights checkpoints/leg_roi.pt --ckpt checkpoi
 meposer evaluate --ckpt checkpoints/meposer_best.pt --split val --set refine_wrists=true refine_2d=true post_lowpass_hz=4 \
     refine_2d_features=runs/leg_roi_release/features refine_2d_weight=3 refine_prior=0.03 refine_iters=150
 
+# + contact fit: planted feet held still over time (add to the previous command)
+meposer evaluate --ckpt checkpoints/meposer_best.pt --split val --set refine_wrists=true refine_2d=true post_lowpass_hz=4 \
+    refine_2d_features=runs/leg_roi_release/features refine_2d_weight=3 refine_prior=0.03 refine_iters=150 refine_contact=true
+
 # per-frame SMPL pose / shape / translation and joints for one subject
 meposer infer --ckpt checkpoints/meposer_best.pt --subject 0006 --out preds_0006.npz --set refine_wrists=true refine_2d=true post_lowpass_hz=4
 ```
@@ -93,12 +106,10 @@ Expected MPJPE in cm, verified with these exact commands on CPU:
 
 | | 0001 | 0006 |
 |---|---|---|
-| network output | 3.81 | 5.50 |
-| + wrist IK + 2D fit + low-pass | 3.09 | 3.03 |
-| + adaptive lower-body crop | 2.46 | 2.55 |
-
-The cross-validation table was computed before a half-cell fix in the 2D peak decoding. Its 2D-fit rows are therefore
-about 0.05 cm worse than what the current code gives.
+| network output | 3.49 | 4.88 |
+| + wrist IK + 2D fit + low-pass | 2.99 | 2.85 |
+| + adaptive lower-body crop | 2.40 | 2.39 |
+| + contact fit (foot skating 27.0 / 17.2 → 15.2 / 9.4 cm/s) | 2.29 | 2.34 |
 
 ## Training
 
@@ -107,7 +118,7 @@ model. Finished stages are skipped, and any config key can be overridden with `-
 
 ```bash
 meposer train -c configs/default.yaml -o runs/meposer        # MEPoser, paper architecture and Appendix-B loss
-meposer train -c configs/best.yaml    -o runs/ours --set model.image_features=runs/meposer/stage1_image/features
+meposer train -c configs/best_long.yaml -o runs/ours --set model.image_features=runs/meposer/stage1_image/features
 meposer train -c configs/joint_b32_short.yaml -o runs/joint --stage full \
     --set model.image.init_from=runs/meposer/stage1_image/best.pt                  # joint (end-to-end) training
 python scripts/leg_roi.py train --init runs/meposer/stage1_image/best.pt --out runs/leg_roi
@@ -119,38 +130,47 @@ python scripts/leg_roi.py train --init runs/meposer/stage1_image/best.pt --out r
 | `imu_only.yaml`, `cv_only.yaml` | single-modality ablations of the paper |
 | `joint_b32_short.yaml` | joint training with the paper's effective batch of 32 windows |
 | `best.yaml` | ours: world-yaw / IMU-noise augmentation + foot-contact head |
+| `best_long.yaml` | the same, trained 40 epochs (the released checkpoint) |
 | `paper_literal.yaml` | our own design choices switched off, for comparison |
 
 The default split trains on 0000-0007 and validates on 0008-0009. The reported numbers use cross-validation instead.
 
 ## Evaluation protocol and full reproduction
 
-- **Split.** 3-fold cross-validation by subject, holding out 0000+0005, 0001+0006 and 0002+0007. Each fold retrains
+- **Split.** 3-fold cross-validation by folder, holding out 0000+0005, 0001+0006 and 0002+0007. Each fold retrains
   every stage, and the last epoch of a fixed schedule is reported.
 - **Metrics.** MPJPE, PA-MPJPE, MPJRE, hand, lower-body and jitter errors, copied from HMD-Poser into
   `meposer/metrics/hmdposer.py`. Predictions are aligned at the head joint, and each held-out sequence runs causally.
-- **Post-processing.** Wrist IK, 2D fit and low-pass run at test time on inputs only. They never see ground truth.
+- **Post-processing.** Wrist IK, 2D fit, leg crop, low-pass and the optional contact fit run at test time on inputs
+  only. They never see ground truth. The low-pass and the contact fit are offline (they use future frames).
 
 ```bash
 bash scripts/reproduce.sh      # all folds, all models, tables and figures; ~10 h on one H200
 ```
 
 It writes `runs/final/final_table.md` (report section 4), `reports/results/hard_cases.md` (section 5) and
-`reports/figures/hard_0006.*`.
+`reports/figures/mesh_0006.*`.
 
 ## Results
 
-MPJPE in cm on 6 held-out subjects; full table in [`reports/results/final_table.md`](reports/results/final_table.md).
+3-fold cross-validation, 6 held-out folders; errors in cm.
 
-| model | MPJPE | PA-MPJPE | HandPE | LowerPE |
-|---|---|---|---|---|
-| IMU only | 4.21 | 3.20 | 7.41 | 5.53 |
-| image only | 4.02 | 2.88 | 8.85 | 4.84 |
-| **MEPoser, reproduced** | **3.53** | 2.89 | 7.24 | 4.30 |
-| MEPoser, joint training | 4.26 | 3.71 | 9.22 | 5.14 |
-| **ours** (augmentation, contact head, wrist IK, stereo 2D fit, low-pass) | **2.46** | 2.00 | 2.14 | 3.69 |
+| model | MPJPE | PA-MPJPE | UpperPE | LowerPE | HandPE | FS |
+|---|---|---|---|---|---|---|
+| IMU only | 4.21 | 3.20 | 3.29 | 5.53 | 7.41 | 23.9 |
+| image only | 4.02 | 2.88 | 3.46 | 4.84 | 8.85 | 30.3 |
+| **MEPoser, reproduced** | **3.53** | 2.89 | 2.99 | 4.30 | 7.24 | 23.7 |
+| MEPoser, joint training | 4.26 | 3.71 | 3.65 | 5.14 | 9.22 | 23.5 |
+| ours, 20 epochs (augmentation, contact head, wrist IK, stereo 2D fit, low-pass) | 2.46 | 2.00 | 1.60 | 3.69 | 2.14 | 23.2 |
+| **ours, 40 epochs + adaptive lower-body crop** | **1.96** | 1.54 | 1.56 | 2.53 | 2.16 | 17.7 |
+| ours, 40 epochs + lower-body crop + contact fit | 1.99 | 1.58 | 1.56 | 2.61 | 2.16 | 10.2 |
+| *EMHI paper, MEPoser-Full, full dataset, Protocol 1 / 2* | *3.7 / 4.8* | *2.5 / 2.9* | *2.7 / 3.2* | *5.1 / 7.0* | *n/r* | *n/r* |
 
-What each change fixes, on the fold with the two most active subjects:
+FS is foot skating in cm/s on frames where the ground-truth foot is planted (ground truth: 7.2); the paper reports
+neither hand error nor foot skating. All columns, including MPJRE, RootPE and Jitter, and the paper's full Table 2:
+[`reports/results/metrics_full.md`](reports/results/metrics_full.md).
+
+What each change fixes, on the fold holding out 0001 and 0006 (20-epoch model):
 
 | variant | MPJPE | legs | arms | fast motion |
 |---|---|---|---|---|
@@ -166,18 +186,35 @@ Implementation details and every intermediate experiment are in the [appendix](r
 
 ## Visualization
 
+Held-out clips, 4 s each, rendered with the released pipeline (40-epoch model, leg crop, contact fit). Left: our mesh
+projected into both headset fisheye views. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth
+green, prediction red. Clip MPJPE in cm, MEPoser → ours.
+
+| walking, 0001: 6.21 → 2.76 | walking, 0002: 2.87 → 2.24 |
+|---|---|
+| ![](reports/figures/clips/mesh_0001.gif) | ![](reports/figures/clips/mesh_0002.gif) |
+| **stepping, 0005: 3.00 → 2.65** | **fast whole-body motion, 0006: 5.03 → 2.20** |
+| ![](reports/figures/clips/mesh_0005.gif) | ![](reports/figures/clips/mesh_0006.gif) |
+| **arms out of view, 0007: 2.91 → 1.60** | **legs partly occluded, 0001: 2.20 → 2.32 (a failure case)** |
+| ![](reports/figures/clips/mesh_0007.gif) | ![](reports/figures/clips/mesh_0001_occluded.gif) |
+
+Folder 0000 has no 4 s run of consecutive annotated frames and is not shown. Leg occlusion is rare in this subset (all
+leg joints are visible in more than 98.8 % of frames); the one clip with partial leg occlusion is where our fit is
+slightly worse than MEPoser.
+
 ![Methods](reports/figures/compare_0006.gif)
 
-*Same clip. Left: fisheye views with ground truth (green) and our prediction (red) projected into the image. Right:
-IMU-only, image-only, MEPoser and ours against ground truth, with the per-frame error below.*
+*All four models on the 0006 clip. Left: fisheye views with ground truth (green) and our prediction (red). Right:
+IMU-only, image-only, MEPoser and ours, with the per-frame error below.*
 
 ```bash
 # four-method comparison (add --no-images to leave out the dataset fisheye frames)
 python scripts/compare_video.py --subject 0006 --start 991 --seconds 8 --out compare_0006.mp4 --gif compare_0006.gif \
-    --model IMU-only <ckpt> raw --model image-only <ckpt> raw --model MEPoser <ckpt> raw --model ours <ckpt> ik_2d_lp
+    --model IMU-only <ckpt> raw --model image-only <ckpt> raw --model MEPoser <ckpt> raw --model ours <ckpt> full
 
 # SMPL meshes: ground truth, a baseline and ours, overlaid on the fisheye views unless --no-images
-python scripts/render_mesh.py --ckpt checkpoints/meposer_best.pt --subject 0006 --start 991 --seconds 6 --out mesh_0006
+python scripts/render_mesh.py --ckpt checkpoints/meposer_best.pt --baseline <MEPoser ckpt> --post full --subject 0006 \
+    --start 991 --seconds 6 --out mesh_0006
 
 meposer visualize --ckpt checkpoints/meposer_best.pt --subject 0006 --video 10     # fisheye + 3D skeleton + error curve
 ```

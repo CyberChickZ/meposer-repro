@@ -68,6 +68,14 @@ class WindowDataset(Dataset):
             for a, b in s.segments(min_length=window)
             for start in range(a, b - window + 1, stride)
         ]
+        for si, seq in enumerate(sequences):
+            n = sum(1 for i, _ in self.items if i == si)
+            expected = max(1, (len(seq.frames) - window) // stride + 1)
+            if n < 0.5 * expected:
+                used = sum(b - a for a, b in seq.segments(min_length=window))
+                print(f"WARNING: subject {seq.subject}: only {n} training windows of {window} frames (a gap-free sequence of this "
+                      f"length would give {expected}); {len(seq.segments())} contiguous segments, {len(seq.frames) - used} of "
+                      f"{len(seq.frames)} frames are in segments shorter than the window and are not used", flush=True)
 
     def __len__(self):
         return len(self.items)

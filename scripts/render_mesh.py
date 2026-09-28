@@ -17,7 +17,8 @@ from meposer.geometry.rotations import rotation_6d_to_axis_angle
 from meposer.geometry.se3 import transform_points
 from meposer.smpl.vertices import load_smpl_full, posed_vertices
 
-POSTS = {"raw": [], "ik_2d_lp": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4"]}
+POSTS = {"raw": [], "ik_2d_lp": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4"],
+         "full": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4", "refine_contact=true"]}
 
 
 def mesh_world(smpl, pose72, beta, anchor_joints_head):
@@ -154,7 +155,7 @@ def main():
     if a.png:
         pick = np.linspace(0, len(rows) - 1, 4).astype(int)
         cv2.imwrite(a.png, np.concatenate([rows[i] for i in pick], 0))
-    print(out_path.with_suffix(".mp4"), out_path.with_suffix(".gif"), f"mean MPJPE {err.mean():.2f} cm over {len(frames)} frames")
+    print(out_path.with_suffix(".mp4"), out_path.with_suffix(".gif"), f"mean MPJPE {err.mean():.2f} cm over {len(frames)} frames" + ("" if err_base is None else f", baseline {err_base.mean():.2f} cm"))
 
 
 if __name__ == "__main__":

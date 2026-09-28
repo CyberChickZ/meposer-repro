@@ -10,19 +10,25 @@ from meposer.engine.common import load_checkpoint
 from meposer.engine.infer import evaluate_sequences
 
 MODELS = ["imu_only", "cv_only", "two_stage", "joint", "joint_b32", "best", "best_contact", "kitchen_sink"]
-ROI_MODELS = {"best", "best_contact", "kitchen_sink", "two_stage", "cv_only"}
+ROI_MODELS = {"best", "best_contact", "best_long", "kitchen_sink", "two_stage", "cv_only"}
 POST = {"raw": [], "IK+LP4": ["refine_wrists=true", "post_lowpass_hz=4"], "IK+2D+LP4": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4"],
         "IK+legROI2D+LP4": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4", "refine_2d_features=runs/leg_roi_{fold}/features",
                             "refine_2d_weight=3", "refine_prior=0.03", "refine_iters=150"]}
+POST["IK+legROI2D+LP4+contact"] = POST["IK+legROI2D+LP4"] + ["refine_contact=true"]
 
 
-def main(root):
+def main(root, models=None, roi="runs/leg_roi_{fold}/features", out="final_table", posts=None):
     root = Path(root)
+    global MODELS
+    MODELS = models or MODELS
+    POST["IK+legROI2D+LP4"][3] = POST["IK+legROI2D+LP4+contact"][3] = "refine_2d_features=" + roi
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     res = {}
     for m in MODELS:
         for post, extra in POST.items():
-            if post == "IK+legROI2D+LP4" and m not in ROI_MODELS:
+            if posts and post not in posts:
+                continue
+            if post.startswith("IK+legROI2D") and m not in ROI_MODELS:
                 continue
             per = {}
             folds = sorted((root / m).glob("fold*/last.pt"))
@@ -51,10 +57,18 @@ def main(root):
         lines.append(f"| {m} | {post} | " + " | ".join(f"{per[s]['mpjpe']:.2f}" for s in subs) +
                      f" | **{g('mpjpe'):.2f}** | {g('pa_mpjpe'):.2f} | {g('mpjre'):.2f} | {g('handpe'):.2f} | {g('lowerpe'):.2f} | {g('pred_jitter'):.0f} ({g('gt_jitter'):.0f}) |")
     table = "\n".join(lines)
-    (root / "final_table.md").write_text("3-fold cross-validation by subject (folds 0-2: held out 0000+0005, 0001+0006, 0002+0007); every model on the same GPU-trained per-fold stage-1 features; last epoch; MPJPE cm per held-out subject. post: raw network output, or test-time wrist IK from the controllers + 4 Hz zero-phase low-pass (offline).\n\n" + table + "\n")
-    json.dump({f"{m}|{p}": v for (m, p), v in res.items()}, open(root / "final_table.json", "w"), indent=1)
+    (root / f"{out}.md").write_text("3-fold cross-validation by subject (folds 0-2: held out 0000+0005, 0001+0006, 0002+0007); every model on the same GPU-trained per-fold stage-1 features; last epoch; MPJPE cm per held-out subject. post: raw network output, or test-time wrist IK from the controllers + 4 Hz zero-phase low-pass (offline).\n\n" + table + "\n")
+    json.dump({f"{m}|{p}": v for (m, p), v in res.items()}, open(root / f"{out}.json", "w"), indent=1)
     print(table)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("root")
+    p.add_argument("--models", nargs="*")
+    p.add_argument("--roi", default="runs/leg_roi_{fold}/features", help="leg-ROI peak directory; {fold} -> fold0/fold1/fold2")
+    p.add_argument("--out", default="final_table")
+    p.add_argument("--posts", nargs="*", help="only these post-processing levels, e.g. IK+legROI2D+LP4+contact")
+    a = p.parse_args()
+    main(a.root, a.models, a.roi, a.out, a.posts)

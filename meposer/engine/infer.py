@@ -50,7 +50,8 @@ class PostProcessor:
         self.lowpass = cfg.get("post_lowpass_hz")
         self.refine = cfg.get("refine_wrists", False)
         self.fit2d = cfg.get("refine_2d", False)
-        self.smpl = copy.deepcopy(model.smpl).cpu() if (self.lowpass or self.refine or self.fit2d) else None
+        self.contact_fit = cfg.get("refine_contact", False)
+        self.smpl = copy.deepcopy(model.smpl).cpu() if (self.lowpass or self.refine or self.fit2d or self.contact_fit) else None
         if self.fit2d:
             from ..data.calibrate import load_calib
             calib = load_calib(cfg.data.calib)
@@ -90,6 +91,10 @@ class PostProcessor:
             out["rot6d"] = matrix_to_rotation_6d(rotation_6d_to_matrix(r))
             with torch.no_grad():
                 out["joints_fk"], _ = self.smpl(rotation_6d_to_matrix(out["rot6d"]), out["betas"])
+        if self.contact_fit and out.get("contact_logits") is not None and b - a > 2:
+            from .refine import refine_contact
+            out["rot6d"], out["joints_fk"] = refine_contact(self.smpl, out["rot6d"], out["betas"], torch.as_tensor(seq.head_anchor[a:b]),
+                                                            out["contact_logits"], threshold=self.cfg.get("refine_contact_p", 0.9))
         return out
 
 

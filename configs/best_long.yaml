@@ -1,0 +1,6 @@
+# Best model trained twice as long: 40 epochs, learning-rate decays moved proportionally to epochs 14 and 28.
+_base_: best.yaml
+
+train:
+  epochs: 40
+  milestones: [14, 28]

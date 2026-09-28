@@ -98,3 +98,42 @@ def refine_body(smpl, rot6d, betas, head_anchor, wrist_tg, peaks, conf, t_cam_wo
     with torch.no_grad():
         joints, _ = smpl(rotation_6d_to_matrix(full), betas.detach())
     return full, joints
+
+
+LEG_JOINTS = [1, 2, 4, 5, 7, 8, 10, 11]
+FOOT_PAIRS = [[7, 10], [8, 11]]
+
+
+def refine_contact(smpl, rot6d, betas, head_anchor, contact_logits, threshold=0.9, prior=0.03, w_zero_vel=0.1, w_acc=0.01,
+                   iters=300, lr=0.01, fps=30):
+    """Whole-segment leg fit: while the contact head is confident a foot is planted, its ankle and toe should not move
+    (in the headset-anchored world frame); an acceleration term keeps the legs smooth and an L1 prior keeps the pose
+    close to the input. Only leg rotations change."""
+    import math
+    r0 = rot6d.detach().clone()
+    idx = torch.tensor(LEG_JOINTS)
+    var = r0[:, idx].clone().requires_grad_(True)
+    gate = (contact_logits.detach() > math.log(threshold / (1 - threshold))).float()
+    anchor = head_anchor.float()
+    opt = torch.optim.Adam([var], lr=lr)
+    for _ in range(iters):
+        full = r0.clone()
+        full[:, idx] = var
+        j, _ = smpl(rotation_6d_to_matrix(full), betas.detach())
+        jw = j - j[:, 15:16] + anchor[:, None]
+        loss = prior * (var - r0[:, idx]).abs().mean()
+        for f in range(2):
+            ft = jw[:, FOOT_PAIRS[f]]
+            g = gate[1:, f] * gate[:-1, f]
+            loss = loss + w_zero_vel * (g[:, None] * (ft[1:] - ft[:-1]).norm(dim=-1)).sum() / g.sum().clamp_min(1) * fps
+        if len(jw) > 2:
+            acc = jw[2:, idx] - 2 * jw[1:-1, idx] + jw[:-2, idx]
+            loss = loss + w_acc * acc.norm(dim=-1).mean() * fps * fps
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    full = r0.clone()
+    full[:, idx] = matrix_to_rotation_6d(rotation_6d_to_matrix(var.detach()))
+    with torch.no_grad():
+        j, _ = smpl(rotation_6d_to_matrix(full), betas.detach())
+    return full, j

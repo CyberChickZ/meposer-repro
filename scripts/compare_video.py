@@ -59,7 +59,8 @@ def main():
     a = p.parse_args()
     preds = []
     for name, ck, post in a.model:
-        extra = {"ik_lp": ["refine_wrists=true", "post_lowpass_hz=4"], "ik_2d_lp": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4"]}.get(post, [])
+        extra = {"ik_lp": ["refine_wrists=true", "post_lowpass_hz=4"], "ik_2d_lp": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4"],
+                 "full": ["refine_wrists=true", "refine_2d=true", "post_lowpass_hz=4", "refine_contact=true"]}.get(post, [])
         seq, s0, s1, j = predict(ck, a.subject, extra, a.set)
         preds.append((name, j))
     gt = seq.joints_world[s0:s1]
