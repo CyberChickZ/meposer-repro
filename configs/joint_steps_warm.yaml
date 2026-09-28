@@ -1,0 +1,11 @@
+# Same as joint_steps.yaml, with the image branch warm-started from the per-frame stage-1 checkpoint, BatchNorm
+# statistics frozen and a 0.1x learning rate on the image branch. Still joint: every module is updated by the full loss.
+_base_: joint_steps.yaml
+
+model:
+  image:
+    init_from: checkpoints/stage1_image.pt
+    freeze_bn: true
+
+train:
+  backbone_lr_scale: 0.1

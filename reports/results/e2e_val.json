@@ -1,0 +1,70 @@
+{
+  "checkpoint": "runs/e2e/best.pt",
+  "epoch": 2,
+  "split": "val",
+  "subjects": [
+    "0008",
+    "0009"
+  ],
+  "per_sequence": {
+    "0008": {
+      "mpjre": 4.79645466775138,
+      "mpjpe": 4.193630069494247,
+      "mpjve": 17.269985377788544,
+      "handpe": 16.623307764530182,
+      "upperpe": 5.372878536581993,
+      "lowerpe": 2.49027106910944,
+      "rootpe": 1.584072783589363,
+      "pred_jitter": 246.1455841064453,
+      "gt_jitter": 71.18705749511719,
+      "pa_mpjpe": 4.657848120791276,
+      "num_frames": 3445,
+      "num_segments": 1
+    },
+    "0009": {
+      "mpjre": 3.3748707472105237,
+      "mpjpe": 2.4962639436125755,
+      "mpjve": 9.060206264257431,
+      "handpe": 7.382405549287796,
+      "upperpe": 2.5018395856022835,
+      "lowerpe": 2.4882107973098755,
+      "rootpe": 1.3193771243095398,
+      "pred_jitter": 144.22372436523438,
+      "gt_jitter": 57.17253112792969,
+      "pa_mpjpe": 2.156462364579148,
+      "num_frames": 3439,
+      "num_segments": 1
+    }
+  },
+  "aggregate": {
+    "mean_over_sequences": {
+      "mpjre": 4.085662707480952,
+      "mpjpe": 3.3449470065534115,
+      "mpjve": 13.165095821022987,
+      "handpe": 12.002856656908989,
+      "upperpe": 3.9373590610921383,
+      "lowerpe": 2.4892409332096577,
+      "rootpe": 1.4517249539494514,
+      "pred_jitter": 195.18465423583984,
+      "gt_jitter": 64.17979431152344,
+      "pa_mpjpe": 3.407155242685212,
+      "num_segments": 1.0
+    },
+    "frame_weighted": {
+      "mpjre": 4.086282224006464,
+      "mpjpe": 3.3456867070731158,
+      "mpjve": 13.168673586470488,
+      "handpe": 12.006883778734341,
+      "upperpe": 3.9386102401817578,
+      "lowerpe": 2.4892418310619817,
+      "rootpe": 1.4518403065028853,
+      "pred_jitter": 195.22907108349,
+      "gt_jitter": 64.18590174602396,
+      "pa_mpjpe": 3.4082453294470714,
+      "num_segments": 1.0
+    },
+    "num_frames": 6884
+  },
+  "fps": 30,
+  "protocol": "head-joint aligned (HMD-Poser), 22 SMPL joints, per-frame betas, causal full-sequence inference"
+}

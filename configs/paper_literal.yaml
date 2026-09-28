@@ -1,0 +1,11 @@
+# The most literal reading of Section 4 + Appendix B wherever the paper is explicit; my additions switched off.
+# Still two-stage and 320x240 (compute); see e2e_paper.yaml for the end-to-end counterpart.
+_base_: default.yaml
+
+model:
+  image:
+    feature_fusion: single
+    heatmap_encoder: flatten
+
+loss:
+  shape: 0.0

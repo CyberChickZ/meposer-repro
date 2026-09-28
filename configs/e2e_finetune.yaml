@@ -1,0 +1,23 @@
+# Stage 3 (optional): fine-tune everything end to end with images inside the temporal windows.
+# Starts from a finished default run (runs/meposer). Result on this subset: worse than stage 2 (3.35 vs 2.90 cm).
+_base_: default.yaml
+
+model:
+  image_features: null
+  end_to_end: true
+  init_from: runs/meposer/best.pt
+  image:
+    init_from: runs/meposer/stage1_image/best.pt
+
+data:
+  window: 16
+  window_stride: 8
+
+train:
+  epochs: 3
+  batch_size: 4
+  lr: 0.0001
+  milestones: [2]
+  gamma: 0.1
+  log_every: 50
+  val_every: 1

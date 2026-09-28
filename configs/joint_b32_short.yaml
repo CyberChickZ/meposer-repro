@@ -1,0 +1,13 @@
+# Corrected joint training within the time budget: the paper's effective batch of 32 windows (8 x 4 accumulation), warm
+# start from the fold's image-branch checkpoint, frozen BatchNorm, backbone lr 0.1x, window stride 8, 10 epochs with
+# decays after epochs 4 and 7 (920 optimizer steps, ~1.9 M images per fold).
+_base_: joint_steps_warm.yaml
+
+data:
+  window_stride: 8
+
+train:
+  epochs: 10
+  batch_size: 8
+  accum_steps: 4
+  milestones: [4, 7]

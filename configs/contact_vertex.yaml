@@ -1,0 +1,14 @@
+# Extension: fused model + foot-contact head trained on vertex-based pseudo labels + foot-skate penalty.
+# At test time the head predicts contact from IMU + image features + history; labels come from the SMPL sole vertices.
+_base_: default.yaml
+
+data:
+  contact:
+    source: vertices
+
+model:
+  contact_head: true
+
+loss:
+  contact: 0.5
+  foot_skate: 5.0

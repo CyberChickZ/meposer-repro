@@ -1,0 +1,34 @@
+# Joint end-to-end training as in the paper, on one GPU: every module (image backbone, heatmap head, 3D pathway,
+# IMU encoder, fusion, 3x LSTM+FFN, pose/shape heads) is updated by the paper's total loss from the first step,
+# image branch from ImageNet as in the paper's backbone, BatchNorm trained normally. Paper schedule: Adam, 20 epochs,
+# lr 1e-3, x0.1 after epochs 7 and 14, batch 32 windows (8 windows per micro-batch x 4 accumulation steps),
+# 640x480 input with 80x60 heatmaps. Window length (not stated in the paper): 32 frames. Mixed precision (bf16) in the
+# image branch only, so that 8 windows x 32 frames x 2 views = 512 images fit on one 141 GB H200.
+_base_: default.yaml
+
+data:
+  processed: data/processed_640
+  image_size: [640, 480]
+  window: 32
+  window_stride: 4
+  num_workers: 16
+
+model:
+  image_features: null
+  end_to_end: true
+  init_from: null
+  image:
+    init_from: null
+    freeze_bn: false
+    amp: true
+
+train:
+  epochs: 20
+  batch_size: 8
+  accum_steps: 4
+  lr: 0.001
+  backbone_lr_scale: 1.0
+  milestones: [7, 14]
+  gamma: 0.1
+  log_every: 100
+  val_every: 1

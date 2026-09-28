@@ -1,0 +1,21 @@
+/data/
+/runs/
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.DS_Store
+assets/smpl/*.npz
+assets/smpl/*.pkl
+scripts/_*.sh
+reports/figures/paper/*.pdf
+checkpoints/image_features/
+# media that contain frames of the EMHI dataset are generated locally and never committed
+reports/figures/compare_*
+reports/figures/mesh_*
+reports/figures/prediction_*
+reports/figures/qualitative_*
+reports/results/contact_sheet.png
+checkpoints/image_features/
+reports/figures/paper/

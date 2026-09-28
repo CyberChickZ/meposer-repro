@@ -1,0 +1,30 @@
+# Joint training (paper's total loss updates every module), made to fit one machine:
+# warm start of the image branch from the per-frame stage-1 checkpoint, BatchNorm statistics frozen (a batch of
+# consecutive frames is far from i.i.d.), gradient accumulation 8 x 2 windows = 16 windows per optimizer step, window 32
+# (same as the two-stage temporal model) sampled with stride 16 so an epoch costs ~7 min, backbone lr 0.1x. Paper schedule
+# otherwise.
+_base_: default.yaml
+
+model:
+  image_features: null
+  end_to_end: true
+  init_from: null
+  image:
+    init_from: runs/meposer/stage1_image/best.pt
+    freeze_bn: true
+
+data:
+  window: 32
+  window_stride: 16
+  num_workers: 2
+
+train:
+  epochs: 20
+  batch_size: 2
+  accum_steps: 8
+  lr: 0.001
+  backbone_lr_scale: 0.1
+  milestones: [7, 14]
+  gamma: 0.1
+  log_every: 200
+  val_every: 1

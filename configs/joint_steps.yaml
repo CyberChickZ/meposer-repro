@@ -1,0 +1,12 @@
+# Joint end-to-end training with the paper's total loss, schedule adapted to the subset by optimizer steps rather than
+# epochs: the paper's 20 epochs over 3.07 M frames are ~100x more updates than 20 epochs over this 32 k-frame subset, and
+# 20 epochs at 32 windows per step gave only 920 updates (train SMPL joint error 1.5-2 cm, under-fitted). Here: 8 windows
+# per step, windows sampled with stride 8, 20 epochs = 7,360 updates; lr 1e-3, decays after epochs 7 and 14, Adam.
+_base_: joint_320.yaml
+
+data:
+  window_stride: 8
+
+train:
+  batch_size: 8
+  accum_steps: 1

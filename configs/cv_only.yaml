@@ -1,0 +1,11 @@
+# MEPoser-CV ablation: stereo images + headset 6DoF (for world alignment), no body IMUs.
+# The joints -> SMPL path does not train at the paper's lr of 1e-3 (loss flat until the second lr drop, 6.9 cm);
+# 1e-4 trains normally (3.3 cm). See reports/REPORT.md 6.3.
+_base_: default.yaml
+
+model:
+  modalities: [image]
+
+train:
+  lr: 0.0001
+  milestones: [10, 16]

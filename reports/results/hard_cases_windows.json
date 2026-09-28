@@ -1,0 +1,18 @@
+{
+ "0001": {
+  "start_frame": 101,
+  "mean_speed_cm_s": 4.030270113547643,
+  "leg_visible": 0.8379629629629629,
+  "arm_visible": 0.7444444444444445,
+  "baseline_mpjpe": 1.9980577230453491,
+  "final_mpjpe": 2.6850688457489014
+ },
+ "0006": {
+  "start_frame": 991,
+  "mean_speed_cm_s": 24.132976338598464,
+  "leg_visible": 1.0,
+  "arm_visible": 0.5569444444444445,
+  "baseline_mpjpe": 5.124772071838379,
+  "final_mpjpe": 2.1365342140197754
+ }
+}

@@ -1,0 +1,129 @@
+# MEPoser reproduction - the single source of truth for every run.
+# `meposer train -c configs/default.yaml -o runs/meposer` runs stage 1 (image branch), caches its outputs, then stage 2.
+# Any key can be overridden on the command line: --set train.lr=1e-4 'model.modalities=[imu]'.
+
+seed: 0
+device: auto            # cuda > mps > cpu. MPS is ~25x faster than CPU on Apple silicon but not bit-deterministic.
+threads: 10             # CPU threads for torch
+
+data:
+  processed: data/processed          # output of `meposer prepare`
+  calib: assets/calib/calib.json     # fitted by `meposer prepare` (fisheye intrinsics, camera<-headset, head offset)
+  smpl: assets/smpl/SMPL_NEUTRAL.npz # neutral SMPL, joints only (assumption: annotations use the neutral model)
+  fps: 30                            # dataset frame rate (paper); used for velocity / jitter metrics
+  # subject-level split; each subject folder is one contiguous ~2 min sequence, so this is also a sequence-level split
+  train_subjects: ["0000", "0001", "0002", "0003", "0004", "0005", "0006", "0007"]
+  val_subjects: ["0008", "0009"]
+  image_size: [320, 240]             # training resolution (paper: 640x480); must match `meposer prepare --image-size`
+  heatmap_stride: 8                  # heatmaps are image_size / stride (paper: 80x60 at 640x480 -> 40x30 here)
+  heatmap_sigma: 1.5                 # Gaussian target sigma in heatmap cells; joints outside the image get an all-zero map
+  # per-frame IMU vector (67-d). Assumptions: quaternions are wxyz, positions are in the SMPL world frame (y up),
+  # accelerations are world-frame linear accelerations (gravity removed; verified against position second differences),
+  # rotations are fed as 6D, positions relative to the headset. left_hand_acc is excluded because it is a copy of
+  # left_hand_pos in every frame of the subset (see data/processed/inspection/INSPECTION.md). `<side>_hand_acc_synth` is an optional
+  # replacement: second difference of the controller position, zero-phase Butterworth low-pass (synth_acc_cutoff_hz),
+  # calibrated on the right hand where the real signal exists (corr 0.81). It is offline (uses ~0.1 s of future frames).
+  synth_acc_cutoff_hz: 3.0
+  imu_features:
+    - head_rot6d
+    - head_height
+    - head_acc
+    - left_hand_rot6d
+    - left_hand_pos_rel
+    - right_hand_rot6d
+    - right_hand_pos_rel
+    - right_hand_acc
+    - left_leg_rot6d
+    - left_leg_acc
+    - right_leg_rot6d
+    - right_leg_acc
+    - left_hand_in_head_pos
+    - left_hand_in_head_rot6d
+    - right_hand_in_head_pos
+    - right_hand_in_head_rot6d
+  contact:                           # foot-contact pseudo labels (extension, not in the paper). source: joints (ankle/toe joints) or
+    source: joints                   # vertices (64 SMPL sole vertices per foot, chosen by skinning weight and rest height, LBS)
+    vertex_height_m: 0.02            # vertex source: a sole vertex within 2 cm of the floor and moving < speed_m_per_frame
+                                     # joint source: a foot counts as planted when its
+    height_m: 0.03                   # ankle or toe joint is within height_m of the floor (5th percentile of foot height) and
+    speed_m_per_frame: 0.01          # moves less than speed_m_per_frame; used for the foot_skate metric and the optional losses below
+  augment:                           # extension, training windows only: random rotation of the whole world about the vertical
+    enabled: false                   # axis (all world-frame inputs and targets rotated together) + Gaussian IMU noise
+    yaw_deg: 180
+    acc_noise: 0.3                   # m/s^2
+    pos_noise: 0.005                 # m
+  window: 32                         # stage-2 training window in frames (~1 s; paper does not state it, HMD-Poser uses 40)
+  window_stride: 4                   # stride between training windows; windows never cross gaps in the frame ids
+  frame_stride: 1                    # stage-1 uses every frame of the training subjects
+  val_frame_stride: 10               # stage-1 validation subsampling (speed only)
+  num_workers: 6
+
+model:
+  modalities: [image, imu]           # [imu] = MEPoser-IMU, [image] = MEPoser-CV, both = MEPoser-Full
+  image_features: null               # path to cached stage-1 outputs; null = `meposer train` produces them in <out>/stage1_image/features.
+                                     # evaluate/infer/visualize rebuild a missing cache from stage1_checkpoint (default checkpoints/stage1_image.pt)
+  stage1_checkpoint: null            # image-branch checkpoint used to rebuild the feature cache when it is missing
+  contact_head: false                # extension: 2-logit foot-contact head on the temporal feature (trained with loss.contact)
+  init_from: null                    # optional stage-2 checkpoint to initialise the temporal model from (used by e2e_finetune.yaml)
+  feature_noise:                     # augmentation of the cached image outputs during stage 2: no gain on the development split, but
+                                     # joints_m 0.03 + image_feat_dropout 0.2 gives the best 5-fold result (report 6.1); off = paper
+    joints_m: 0.0
+    image_feat_dropout: 0.0
+  image:
+    backbone: regnet_y_400mf         # paper: RegNetY-400MF, weight-shared for both views
+    pretrained: true                 # ImageNet init (torchvision), stem converted to 1 input channel
+    feat_dim: 256                    # stride-8 feature channels per view (paper: 80x60x256)
+    feature_fusion: fpn              # how RegNet's 104-channel stride-8 map becomes 256 channels: single (one 1x1 conv, the
+                                     # minimal reading of the paper) | fpn (adds upsampled stage-3/4 features; my addition)
+    heatmap_encoder: conv            # heatmaps -> image feature: flatten (paper: "flattened and forwarded to an MLP") |
+                                     # conv (two stride-2 convs first, then flatten + MLP; my parameter-saving variant)
+    heatmap_feat_dim: 256            # image feature after the heatmap encoder
+    joint_feat_dim: 128              # feature from the flattened global 3D joints
+    joint_frame: world               # world (paper, head-relative) | head (tested: worse)
+    init_from: null                  # stage-1 checkpoint to load the image branch from when training end to end
+  imu:
+    hidden: 256
+    out_dim: 256
+  temporal:                          # paper: N = 3 blocks of LSTM + feed-forward, residual + LayerNorm, causal
+    dim: 512
+    blocks: 3
+    ffn_dim: 1024
+    dropout: 0.1
+  heads:                             # two 2-layer MLPs: pose (22 x 6D) and shape (10 betas)
+    hidden: 512
+
+loss:                                # Appendix B weights; all terms L1
+  heatmap: 1.0                       # BCE-with-logits on 2D heatmaps
+  local_joints: 1.0                  # 3D joints in the left-camera frame
+  global_joints: 1.0                 # same joints moved to the world frame with the headset 6DoF
+  smpl: 5.0                          # L_SMPL = root orientation + local rotations + global rotations + FK joints
+  smpl_terms:
+    root_orient: 1.0
+    local_rot: 1.0
+    global_rot: 1.0
+    joints: 1.0
+  smooth: 0.5                        # HMD-Poser acceleration loss on the FK joints
+  contact: 0.0                       # extension: BCE of the contact head against the pseudo labels
+  foot_skate: 0.0                    # extension: mean predicted foot velocity (m/frame) while the GT foot is planted
+  shape: 0.1                         # L1 to the GT betas; NOT in the paper (0 = literal L_SMPL); added because betas are otherwise only reached through L_joint
+
+train_image:                         # stage 1 (per frame). Paper recipe scaled to a converged per-frame run.
+  epochs: 10
+  batch_size: 32
+  lr: 0.001
+  milestones: [5, 8]
+  gamma: 0.1
+  weight_decay: 0.0
+  grad_clip: 0.0
+  log_every: 20
+
+train:                               # stage 2 (temporal). Exactly the paper recipe: Adam, 20 epochs, batch 32, lr 1e-3, x0.1 after 7 and 14.
+  epochs: 20
+  batch_size: 32
+  lr: 0.001
+  milestones: [7, 14]
+  gamma: 0.1
+  weight_decay: 0.0
+  grad_clip: 0.0
+  log_every: 20
+  val_every: 1                       # full causal pass over the validation sequences after every epoch; best.pt = lowest MPJPE

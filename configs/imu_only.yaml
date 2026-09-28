@@ -1,0 +1,5 @@
+# MEPoser-IMU ablation: no images, paper recipe. Only stage 2 runs.
+_base_: default.yaml
+
+model:
+  modalities: [imu]

@@ -1,0 +1,26 @@
+# Paper-faithful end-to-end training: one total loss updates the image branch, the IMU branch, the temporal encoder
+# and the heads jointly from the start (no cached features, no stage 1). Paper recipe: Adam, 20 epochs, lr 1e-3,
+# x0.1 after epochs 7 and 14. Only deviations: 4 windows x 16 frames per step instead of 32 windows (memory:
+# ~75 MB activations per image at 320x240 -> 128 images/step ~ 10 GB), resolution 320x240, windows sampled with stride 8.
+_base_: default.yaml
+
+model:
+  image_features: null
+  end_to_end: true
+  init_from: null
+  image:
+    init_from: null
+
+data:
+  window: 16
+  window_stride: 8
+  num_workers: 2
+
+train:
+  epochs: 20
+  batch_size: 4
+  lr: 0.001
+  milestones: [7, 14]
+  gamma: 0.1
+  log_every: 100
+  val_every: 1

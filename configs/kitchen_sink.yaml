@@ -1,0 +1,13 @@
+# Everything that helped, together: world-yaw + IMU-noise augmentation, random constant leg-tracker mounting bias (drift),
+# noise on the cached image outputs, foot-contact head on vertex labels + foot-skate penalty. Two-stage (cached features).
+_base_: contact_vertex.yaml
+
+data:
+  augment:
+    enabled: true
+    leg_bias_deg: 5
+
+model:
+  feature_noise:
+    joints_m: 0.03
+    image_feat_dropout: 0.2

@@ -1,0 +1,78 @@
+{
+  "checkpoint": "runs/e2e_paper/last.pt",
+  "epoch": 19,
+  "split": "val",
+  "subjects": [
+    "0008",
+    "0009"
+  ],
+  "per_sequence": {
+    "0008": {
+      "mpjre": 7.173179072015989,
+      "mpjpe": 7.166389375925064,
+      "mpjve": 27.787789702415466,
+      "handpe": 31.842586398124695,
+      "upperpe": 9.828943014144897,
+      "lowerpe": 3.3204779028892517,
+      "rootpe": 3.0135026201605797,
+      "pred_jitter": 312.05792236328125,
+      "gt_jitter": 71.18705749511719,
+      "pa_mpjpe": 7.73692649828113,
+      "foot_skate": 19.06469017267227,
+      "gt_foot_skate": 3.302304446697235,
+      "num_frames": 3445,
+      "num_segments": 1
+    },
+    "0009": {
+      "mpjre": 5.23176823676568,
+      "mpjpe": 5.441667884588242,
+      "mpjve": 12.381593883037567,
+      "handpe": 23.873038589954376,
+      "upperpe": 6.703977286815643,
+      "lowerpe": 3.6183319985866547,
+      "rootpe": 3.080207295715809,
+      "pred_jitter": 112.94001770019531,
+      "gt_jitter": 57.17253112792969,
+      "pa_mpjpe": 5.238538768505879,
+      "foot_skate": 11.390188336372375,
+      "gt_foot_skate": 2.9556136578321457,
+      "num_frames": 3439,
+      "num_segments": 1
+    }
+  },
+  "aggregate": {
+    "mean_over_sequences": {
+      "mpjre": 6.202473654390834,
+      "mpjpe": 6.304028630256653,
+      "mpjve": 20.084691792726517,
+      "handpe": 27.857812494039536,
+      "upperpe": 8.26646015048027,
+      "lowerpe": 3.469404950737953,
+      "rootpe": 3.0468549579381943,
+      "pred_jitter": 212.49897003173828,
+      "gt_jitter": 64.17979431152344,
+      "pa_mpjpe": 6.487732633393504,
+      "foot_skate": 15.227439254522324,
+      "gt_foot_skate": 3.1289590522646904,
+      "num_segments": 1.0
+    },
+    "frame_weighted": {
+      "mpjre": 6.203319707921594,
+      "mpjpe": 6.3047802520570615,
+      "mpjve": 20.091405707232347,
+      "handpe": 27.8612855683313,
+      "upperpe": 8.26782198911798,
+      "lowerpe": 3.4692751479652784,
+      "rootpe": 3.0468258884979464,
+      "pred_jitter": 212.58574424934275,
+      "gt_jitter": 64.18590174602396,
+      "pa_mpjpe": 6.488821413635999,
+      "foot_skate": 15.230783749802525,
+      "gt_foot_skate": 3.1291101377333996,
+      "num_segments": 1.0
+    },
+    "num_frames": 6884
+  },
+  "fps": 30,
+  "protocol": "head-joint aligned (HMD-Poser), 22 SMPL joints, per-frame betas, causal full-sequence inference"
+}

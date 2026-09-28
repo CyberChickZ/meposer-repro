@@ -1,0 +1,8 @@
+# Best model (checkpoints/meposer_best.pt): two-stage MEPoser + world-yaw / IMU-noise augmentation + foot-contact head on
+# SMPL sole-vertex pseudo labels + foot-skate penalty. Test-time post-processing is switched on at evaluation with
+# --set refine_wrists=true refine_2d=true post_lowpass_hz=4 (see README).
+_base_: contact_vertex.yaml
+
+data:
+  augment:
+    enabled: true

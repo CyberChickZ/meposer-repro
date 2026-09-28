@@ -1,0 +1,9 @@
+# Extension experiment: IMU-only + foot-contact auxiliary head + foot-skate penalty (pseudo labels from the SMPL feet).
+_base_: imu_only.yaml
+
+model:
+  contact_head: true
+
+loss:
+  contact: 0.5
+  foot_skate: 5.0

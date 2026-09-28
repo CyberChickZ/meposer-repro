@@ -1,0 +1,70 @@
+{
+  "checkpoint": "checkpoints/meposer_full.pt",
+  "epoch": 19,
+  "split": "val",
+  "subjects": [
+    "0008",
+    "0009"
+  ],
+  "per_sequence": {
+    "0008": {
+      "mpjre": 4.672805618772523,
+      "mpjpe": 3.690965101122856,
+      "mpjve": 14.556686580181122,
+      "handpe": 12.285800278186798,
+      "upperpe": 4.47096973657608,
+      "lowerpe": 2.564290724694729,
+      "rootpe": 1.9541924819350243,
+      "pred_jitter": 175.94931030273438,
+      "gt_jitter": 71.18705749511719,
+      "pa_mpjpe": 3.733509134137826,
+      "num_frames": 3445,
+      "num_segments": 1
+    },
+    "0009": {
+      "mpjre": 3.243091638685237,
+      "mpjpe": 2.107236161828041,
+      "mpjve": 7.562112808227539,
+      "handpe": 5.38477748632431,
+      "upperpe": 2.118360809981823,
+      "lowerpe": 2.0911673083901405,
+      "rootpe": 1.4233104884624481,
+      "pred_jitter": 116.43184661865234,
+      "gt_jitter": 57.17253112792969,
+      "pa_mpjpe": 1.7321566409581834,
+      "num_frames": 3439,
+      "num_segments": 1
+    }
+  },
+  "aggregate": {
+    "mean_over_sequences": {
+      "mpjre": 3.95794862872888,
+      "mpjpe": 2.8991006314754486,
+      "mpjve": 11.05939969420433,
+      "handpe": 8.835288882255554,
+      "upperpe": 3.2946652732789516,
+      "lowerpe": 2.3277290165424347,
+      "rootpe": 1.6887514851987362,
+      "pred_jitter": 146.19057846069336,
+      "gt_jitter": 64.17979431152344,
+      "pa_mpjpe": 2.7328328875480046,
+      "num_segments": 1.0
+    },
+    "frame_weighted": {
+      "mpjre": 3.958571688278598,
+      "mpjpe": 2.8997908096883895,
+      "mpjve": 11.062447881496,
+      "handpe": 8.838296300671532,
+      "upperpe": 3.295690524118548,
+      "lowerpe": 2.3279352004832994,
+      "rootpe": 1.6889828399315103,
+      "pred_jitter": 146.21651576328665,
+      "gt_jitter": 64.18590174602396,
+      "pa_mpjpe": 2.7337050632423017,
+      "num_segments": 1.0
+    },
+    "num_frames": 6884
+  },
+  "fps": 30,
+  "protocol": "head-joint aligned (HMD-Poser), 22 SMPL joints, per-frame betas, causal full-sequence inference"
+}

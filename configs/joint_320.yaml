@@ -1,0 +1,10 @@
+# Joint end-to-end training with the paper's total loss and schedule (Adam, 20 epochs, lr 1e-3, x0.1 after 7 and 14,
+# 32 windows per optimizer step = 8 x 4 accumulation), image branch from ImageNet, BatchNorm trained, bf16 in the image
+# branch. Deviations for the 2-hour budget on one H200: 320x240 input (as all other results) and windows sampled with
+# stride 16 (each frame still appears in two windows per epoch).
+_base_: joint_paper.yaml
+
+data:
+  processed: data/processed
+  image_size: [320, 240]
+  window_stride: 16

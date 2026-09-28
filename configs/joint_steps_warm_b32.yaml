@@ -1,0 +1,10 @@
+# Joint training, matched to the two-stage temporal training: same windows per epoch (stride 4) and the paper's batch of
+# 32 windows per optimizer step (8 windows x 4 accumulation); everything else as joint_steps_warm.yaml.
+_base_: joint_steps_warm.yaml
+
+data:
+  window_stride: 4
+
+train:
+  batch_size: 8
+  accum_steps: 4
