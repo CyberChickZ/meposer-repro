@@ -27,7 +27,7 @@ prediction red.*
 ## Installation
 
 ```bash
-git clone <this repository> meposer-repro && cd meposer-repro
+git clone https://github.com/CyberChickZ/meposer-repro.git && cd meposer-repro
 python3 -m venv .venv && source .venv/bin/activate        # Python >= 3.11
 pip install -e ".[dev]"                                   # exact tested versions: requirements.lock.txt
 pytest -q                                                 # unit tests, no data needed, < 5 s
