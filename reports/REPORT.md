@@ -89,8 +89,8 @@ Over all three folds the same pipeline without the leg crop gives **2.46 cm** (v
 
 ![qualitative](figures/hard_0006.png)
 *Hard clip of held-out subject 0006 (fast whole-body motion, frames 991 on): ground truth, reproduced MEPoser
-and ours; skeletons: ground truth green, prediction red. Animated: [hard_0006.gif](figures/hard_0006.gif); all four
-models on the same clip: [methods_0006.gif](figures/methods_0006.gif).*
+and ours; skeletons: ground truth green, prediction red. Animated with the fisheye views: [mesh_0006.gif](figures/mesh_0006.gif); all four
+models on the same clip: [compare_0006.gif](figures/compare_0006.gif).*
 
 ## 6. Insights
 
@@ -129,5 +129,5 @@ models on the same clip: [methods_0006.gif](figures/methods_0006.gif).*
 ## Deliverables and AI use
 
 Code, configs and exact commands: [README](../README.md). Best checkpoint (fold holding out 0001+0006) and the leg-crop
-network: `checkpoints/`. Every number above: `reports/results/`. The dataset is not redistributed; figures contain no
-dataset imagery. Claude Code (Anthropic) wrote the code, ran the experiments and drafted this report under my direction.
+network: `checkpoints/`. Every number above: `reports/results/`. The dataset is not redistributed; the figures show a few
+processed frames for illustration. Claude Code (Anthropic) wrote the code, ran the experiments and drafted this report under my direction.

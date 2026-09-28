@@ -11,9 +11,9 @@ assets/smpl/*.pkl
 scripts/_*.sh
 reports/figures/paper/*.pdf
 checkpoints/image_features/
-# media that contain frames of the EMHI dataset are generated locally and never committed
-reports/figures/compare_*
-reports/figures/mesh_*
+# locally generated media; only the curated clip of subject 0006 is committed
+reports/figures/compare_final_*
+reports/figures/mesh_0001*
 reports/figures/prediction_*
 reports/figures/qualitative_*
 reports/results/contact_sheet.png

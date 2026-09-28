@@ -11,9 +11,10 @@ takes the two downward fisheye views of a VR headset plus five tracked devices (
 trackers) and predicts SMPL pose and shape. On top of the reproduction we add the geometry the paper leaves unused:
 controller-driven wrist IK, a stereo reprojection fit through the calibrated fisheye model, and an adaptive lower-body crop.
 
-![Teaser](reports/figures/hard_0006.gif)
+![Teaser](reports/figures/mesh_0006.gif)
 
-*Held-out subject 0006, fast whole-body motion. Ground truth, reproduced MEPoser, ours. Skeletons: ground truth green,
+*Held-out subject 0006, fast whole-body motion. Left: our predicted SMPL mesh projected into both headset fisheye views
+through the calibrated fisheye model. Right: ground truth, reproduced MEPoser and ours; skeletons: ground truth green,
 prediction red.*
 
 ## Highlights
@@ -21,7 +22,7 @@ prediction red.*
 - **The paper's claim reproduces.** Fusing images and IMUs beats either modality alone under 3-fold subject cross-validation.
 - **Improvements: 3.53 → 2.46 cm MPJPE** on unseen subjects, 2.73 cm on the fastest quarter of frames where MEPoser has 6.84 cm.
 - **Everything is reproducible.** One script regenerates every number, and the metrics use the HMD-Poser code the paper compares against.
-- **Nothing of the dataset is redistributed.** You prepare the data yourself, and all figures here are rendered without dataset images.
+- **The dataset is not redistributed.** You prepare the data yourself; the figures show a few processed frames for illustration only.
 
 ## Installation
 
@@ -165,13 +166,14 @@ Implementation details and every intermediate experiment are in the [appendix](r
 
 ## Visualization
 
-![Methods](reports/figures/methods_0006.gif)
+![Methods](reports/figures/compare_0006.gif)
 
-*Same clip: IMU-only, image-only, MEPoser and ours against ground truth, with the per-frame error below.*
+*Same clip. Left: fisheye views with ground truth (green) and our prediction (red) projected into the image. Right:
+IMU-only, image-only, MEPoser and ours against ground truth, with the per-frame error below.*
 
 ```bash
 # four-method comparison (add --no-images to leave out the dataset fisheye frames)
-python scripts/compare_video.py --subject 0006 --start 991 --seconds 8 --out methods_0006.mp4 --gif methods_0006.gif \
+python scripts/compare_video.py --subject 0006 --start 991 --seconds 8 --out compare_0006.mp4 --gif compare_0006.gif \
     --model IMU-only <ckpt> raw --model image-only <ckpt> raw --model MEPoser <ckpt> raw --model ours <ckpt> ik_2d_lp
 
 # SMPL meshes: ground truth, a baseline and ours, overlaid on the fisheye views unless --no-images
